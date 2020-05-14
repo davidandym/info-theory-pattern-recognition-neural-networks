@@ -40,8 +40,8 @@ take the form of the pipeline below:
 	\centering
 \begin{tikzpicture}
 [
-encdecnode/.style={rectangle, draw=green!60, fill=green!5, very thick, minimum size=10mm, inner sep=10},
-channelnode/.style={rectangle, draw=red!60, fill=red!5, very thick, minimum size=10mm, inner sep=10},
+encdecnode/.style={rectangle, draw=green!50!black, fill=green!5, very thick, minimum size=10mm, inner sep=10},
+channelnode/.style={rectangle, draw=red!50!black, fill=red!5, very thick, minimum size=10mm, inner sep=10},
 every node/.style={outer sep=7}
 ]
 %Nodes
@@ -79,6 +79,8 @@ every node/.style={outer sep=7}
 In this framework, the \textit{Encoder} and \textit{Decoder} are the focus of
 system solutions.
 
+\subsection{The Binary Symmetric Channel and Disk Drives}
+
 To examine this in more detail, let's imagine an imaginary, toy, channel.
 This channel is called the \textit{Binary Symmetric Channel}.
 
@@ -113,17 +115,23 @@ this channel might look like:
 \end{defn}
 
 Suppose we have a disk drive which follows the behavior of a binary
-symmetric channel with $f = 0.1$. If a file of $N=10,000$ bits is stored
+symmetric channel with $f = 0.1$. 
+
+If a file of $N=10,000$ bits is stored
 and then read from this disk drive, roughly how many bits will be flipped?
+The answer can be modeled as a binomial distribution. 
+The event of each bit being flipped or not is an independent event.
+Binomial distributions have mean $Np$ and variance $Npq$, 
+where in this problem $p = f$ and $q = 1 - f$.
+Thus the answer is:
 \begin{frml}
-	1000 \pm 30
+	\text{\# of bits flipped } = 1000 \pm 30
 \end{frml}
-Why? Note that this follows a binomial distribution. Binomial distributions have
-mean $Np$ and variance $Npq$, where in this problem $p = f$ and $q = 1 - f$.
 This is \textit{not a good disk drive}. We're flipping far too many bits, here.
 
-We can instead ask the question: How small does $f$ need to be in order to have
-a disk drive that is sell-able. Imagine that 1GB of data is written every day,
+Instead lets ask the question: How small does $f$ need to be in order to have
+a disk drive that is reliable?
+Imagine that 1GB of data is written every day,
 for 5 years. This results in the number of bits being sent through this
 channel to be
 \begin{frml}
@@ -139,3 +147,148 @@ the distribution:
 \end{frml}
 Thus, with $f = 10^{-15}$ the number of bits that will flip in 5 years of use is
 $0.01 \pm 0.1$
+
+\subsection{Repitition Encoding and Decoding}
+
+One natural way to address this problem is to add redundancy to our encoding,
+increasing the chances that we can recover a source from noise.
+The simplest method for adding redundancy is called the \textit{repitition code}.
+
+\begin{defn}{Repition Code}{}
+A repitition code $R_k$ encodes source $s$ by repeating each bit of $s$ $k$-times
+in transmission $t$.	
+
+\medskip
+For example, $R_3$ follows the following protocol:
+
+\medskip
+\begin{center}
+\begin{tikzpicture}
+	\node[] (r) at (1.5,2) {$R_3$};
+	\node[] (p1) at (0,1.35) {};
+	\node[] (p2) at (2.8,1.35) {};
+	\node[] (in1) at (0.5,1) {1};
+	\node[] (ins) at (2.2,1.6) {$t$};
+	\node[] (int) at (0.5,1.6) {$s$};
+	\node[] (out1) [right=of in1] {111};
+	\node[] (in0) [below=0.3cm of in1]  {0};
+	\node[] (out0) [right=of in0] {000};
+
+	\path[->] (in1) edge node[midway, above] {} (out1);
+	\path[->] (in0) edge node[midway, above] {} (out0);
+	\path[-] (p1) edge node[midway, above] {} (p2);
+\end{tikzpicture}
+\end{center}
+
+\end{defn}
+
+Following the $R_3$ protocol, suppose we have the following transmission:
+\begin{frml}
+	s &= 0 1 1 0 1 \\
+	t &= 000\; 111\; 111\; 000\; 111 \\
+	n &= 000\; 100\; 000\; 101\; 000 \\
+	r &= 000\; 011\; 111\; 101\; 111 \\
+\end{frml}
+
+How should we decode this file? A trivial solution is to take the majority
+vote of each repetition. This would recover the solution, $\hat s$ as:
+\begin{frml}
+	\hat s = 0 1 1 1 1
+\end{frml}
+Let's look at why this is the correct decoder.
+
+\subsubsection{Decoding is Inference}
+
+\textit{Decoding is inference}: We want to 
+\textit{infer} the correct source given the recieved signal.
+To do this, we need to rely on \textit{inverse probability}. 
+Inverse probability relies on two fundamental rules of probability:
+\begin{defn}{Fundamental Rules of Probability}{}
+	There are two fundamental rules in probability.
+
+	\medskip
+The \textbf{Product Rule} states that the probability of any two random variables
+is equal to the probability of one random variable times the probability of the 
+other random variable given the first.
+\begin{frml}
+	\text{Product Rule: } P(s, r) &= P(s) P(r|s) \\
+								  &= P(r) P(s|r) \\
+\end{frml}
+
+The \textbf{Sum Rule} states how to retreive a marginal probability by the
+sum of all the joint variables.
+\begin{frml}
+	\text{Sum Rule: } P(r) &= \sum_s P(s, r)
+\end{frml}
+\end{defn}
+
+Now, if we reveive an $r$, then what we want is to infer $P(s | r)$, which is
+called the \textit{Posterior probability of $s$}. We can use the product rule 
+combined with the sum rule to
+obtain this value.
+
+\begin{defn}{Posterior Probability of $s$ }{}
+	Given a recieved signal $r$, the \textbf{posterior of $s$ } is defined as:
+\begin{frml}
+	P(s | r) &= \frac{P(s)P(s, r)}{P(r)} 
+			 = \frac{P(s)P(s, r)}{\sum_{s'} P(r,s')}
+\end{frml}
+Here, we call
+\begin{itemize}
+	\item $P(s)$ the \textit{prior} of $s$ 
+	\item $P(r,s)$ the \textit{likelihood} of $s$
+\end{itemize}
+\end{defn}
+
+For example, if we are using $R_3$ over a binary symmetric channel, 
+and we recieve $r = 011$, then
+\begin{frml}
+	P(r | s = 0) &= (1 - f) \times f \times f &= (1-f)^1 f^2\\
+	P(r | s = 1) &= f \times (1 - f) \times (1 - f) &= f^1 (1 - f)^2\\
+\end{frml}
+
+If we assume that, in general,  
+\begin{frml}
+	P(s=0) = \frac{1}{2}, \text{ and }
+	P(s=1) = \frac{1}{2}
+\end{frml}
+then  we can obtain the posterior distribution:
+\begin{frml}
+	P(s=1 | r = 011) = \frac{f(1 - f)^2\frac{1}{2}}{(1 - f)f^2\frac{1}{2} + f(1-f)^2\frac{1}{2}}
+	= 1 - f
+\end{frml}
+
+Thus, given our decoding scheme for $R_3$, we can say that $P(s = 1 | r = 011) = 1 - f$, which
+is $90\%$ if $f = 0.1$. So, this is a reasonable decoding scheme.
+Since $P(s=1|r) > P(s=0|r)$, then $\hat s = 1$ is the best guess.
+
+\subsubsection{Rate and Error}
+
+Suppose we are sending a message $s$ over  Binary Symmetric Channel with flip
+probability of $f$, using $R_3$ encoding and Majority Vote Decoding. 
+What is the probability
+that a \textit{single} bit is flipped? There are \textit{two} outcomes which must
+be considered here. The probability that 3 bits in a single chunk were flipped
+and the probability that 2 bits in a single chunk were flipped, i.e.
+\begin{frml}
+	\text{For one bit: } P(\hat s \neq s) = f^3 + 3f^2(1 - f) \approx 3f^2 - 2f^3
+\end{frml}
+where the $3$ comes from the $3$ different ways to \textit{choose} which bits are
+flipped. This term is dominated by the $3f^2$. What have we achieved with this
+encoding scheme? 
+We have decreased the \textbf{rate} of our transmitting from $1$ to $1/3$. In 
+doing so, we have decreased the probability of bit error from $f$ to $3f^2$.
+Thus, by using 3 bits for every bit, we have achieved a \textbf{bit error rate} 
+of $3f^2$.
+
+Let's return, briefly, to the disk drive problem we were considering earlier.
+Assuming again that our $f=0.1$, how many repititions do we need (i.e. what $k$ of
+$R_k$) to get the bit error rate below $10^{-15}$?
+
+It turns out that in order to achieve our desired
+reliability of $10^{-15}$ 
+$k$ will need to be approximately $61$. This is rather terrible, as it means
+that we will need 61 \textit{individual} gigabyte disk drives in order to ensure
+the reliability of a single GB disk drive.
+We can do much better than this!
+
