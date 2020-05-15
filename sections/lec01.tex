@@ -292,3 +292,166 @@ that we will need 61 \textit{individual} gigabyte disk drives in order to ensure
 the reliability of a single GB disk drive.
 We can do much better than this!
 
+\subsection{The 7,4 Hamming Code}
+
+The 7,4 Hamming Code gives us a much more efficient encoding, in terms of rate
+vs bit-error rate, than repitition encoding. It utilizes \textit{parity codes}, 
+which represent the parity between bits in a message.
+
+\begin{defn}{The 7,4 Hamming Code}{}
+	The 7,4 Hamming Code takes in source bits $s_1, s_2, s_3, s_4$ and outputs
+	transmission $t = [ s_1, s_2, s_3, s_4, t_5, t_6, t_7 ]$. Thus for every
+	4 source bits, we output 7, giving us a rate of 4/7.
+
+\medskip
+	The \textit{parity} bits, $t_5, t_6, t_7$ are determined by the parity of
+	subsets of $s$. The subsets of $s$ which correspond to each $t$ are 
+	shown in the diagram below.
+\medskip
+\begin{center}
+\begin{tikzpicture}
+[
+hamcircle/.style={circle, draw=black, very thick, minimum size=20mm, inner sep=10}
+]
+%Nodes
+\node[hamcircle] at(5,4)		(t) {};
+\node[hamcircle] at(5.5,5)		(l) {};
+\node[hamcircle] at(6,4)		(r) {};
+\node[]		(s1) at(4.9,4.7) {$s_1$};
+\node[]		(s2) at(6.0,4.7) {$s_2$};
+\node[]		(s3) at(5.5,4.4) {$s_3$};
+\node[]		(s4) at(5.5,3.7) {$s_4$};
+\node[]		(t5) at(5.5,5.4) {$t_5$};
+\node[]		(t6) at(6.4,3.8) {$t_6$};
+\node[]		(t7) at(4.6,3.8) {$t_7$};
+
+\end{tikzpicture}
+\end{center}
+
+\end{defn}
+
+Let's look at a couple examples of how a source $s$ is transmitted as $t$.
+\begin{center}
+\begin{tikzpicture}
+[
+hamcircle/.style={circle, draw=black, very thick, minimum size=20mm, inner sep=10}
+]
+%Nodes
+\node[]		(s) at(3.5,6.5) {$s = 1000$};
+\node[]		(t1) at(7.5,6.5) {$t = 1110$};
+\node[hamcircle] at(3,4)		(t) {};
+\node[hamcircle] at(3.5,5)		(l) {};
+\node[hamcircle] at(4,4)		(r) {};
+\node[]		(s1) at(2.9,4.7) {$1$};
+\node[]		(s2) at(4.0,4.7) {$0$};
+\node[]		(s3) at(3.5,4.4) {$0$};
+\node[]		(s4) at(3.5,3.7) {$0$};
+\node[]		(t5) at(3.5,5.4) {$1$};
+\node[]		(t6) at(4.4,3.8) {$0$};
+\node[]		(t7) at(2.6,3.8) {$1$};
+\node[]		(t1) at(3.5,2.5) {$t = 1000101$};
+\node[]		(t1) at(7.5,2.5) {$t = 1110100$};
+
+\node[hamcircle] at(7,4)		(t) {};
+\node[hamcircle] at(7.5,5)		(l) {};
+\node[hamcircle] at(8,4)		(r) {};
+\node[]		(s21) at(6.9,4.7) {$1$};
+\node[]		(s22) at(8.0,4.7) {$1$};
+\node[]		(s23) at(7.5,4.4) {$1$};
+\node[]		(s24) at(7.5,3.7) {$0$};
+\node[]		(t25) at(7.5,5.4) {$1$};
+\node[]		(t26) at(8.4,3.8) {$0$};
+\node[]		(t27) at(6.6,3.8) {$0$};
+
+\end{tikzpicture}
+\end{center}
+
+How does our decoder work, for this encoding?
+Recall that the general idea is:
+\begin{frml}
+	P(s|r) = \frac{P(r|s)P(s)}{P(r)}
+\end{frml}
+
+where our likelihood $P(r|s)$ favors $s$ that require fewer bit flips to achieve $r$.
+Let's take a look at what $r$ looks like:
+
+\begin{center}
+\begin{tikzpicture}
+[
+hamcircle/.style={circle, draw=black, very thick, minimum size=20mm, inner sep=10}
+]
+%Nodes
+\node[hamcircle] at(5,4)		(t) {};
+\node[hamcircle] at(5.5,5)		(l) {};
+\node[hamcircle] at(6,4)		(r) {};
+\node[]		(s1) at(4.9,4.7) {$r_1$};
+\node[]		(s2) at(6.0,4.7) {$r_2$};
+\node[]		(s3) at(5.5,4.4) {$r_3$};
+\node[]		(s4) at(5.5,3.7) {$r_4$};
+\node[]		(t5) at(5.5,5.4) {$r_5$};
+\node[]		(t6) at(6.4,3.8) {$r_6$};
+\node[]		(t7) at(4.6,3.8) {$r_7$};
+\end{tikzpicture}
+\end{center}
+
+Let's again imagine that we sent the source 
+$s = 1000$ with transmission $t = 1000101$.
+
+Assume that $r_2$ is flipped, resulting in $r = 1100101$,
+resulting in the following diagram
+
+\begin{center}
+\begin{tikzpicture}
+[
+happyhamcircle/.style={circle, draw=green!50!black, very thick, minimum size=20mm, inner sep=10},
+badhamcircle/.style={circle, draw=red!90!black, very thick, minimum size=20mm, inner sep=10}
+]
+%Nodes
+\node[happyhamcircle] at(5,4)		(t) {};
+\node[badhamcircle] at(5.5,5)		(l) {};
+\node[badhamcircle] at(6,4)		(r) {};
+\node[]		(s1) at(4.9,4.7) {$1$};
+\node[]		(s2) at(6.0,4.7) {$1$};
+\node[]		(s3) at(5.5,4.4) {$0$};
+\node[]		(s4) at(5.5,3.7) {$0$};
+\node[]		(t5) at(5.5,5.4) {$1$};
+\node[]		(t6) at(6.4,3.8) {$0$};
+\node[]		(t7) at(4.6,3.8) {$1$};
+\end{tikzpicture}
+\end{center}
+
+Here we can see that two parity bits are off, and one is correct, due to $r_2$
+being flipped. So, our rule is going to be to: find the bit that is inside
+each sad circle, and outside each happy circle, and identify it as the bit
+that was flipped. Thus, our guess for $t = 1000101$, and our guess for the
+message is $\hat s = 1000$.
+
+It is the case that  \textbf{for any single flip}, this decoding method will always
+detect the correct flip. However, if more than one flip occurs, then we will not
+guess the correct s.
+Using this code, the probability of a block error is about $21f^2$ and the probability
+of a bit error is $9f^2$. Thus, we can see that we actually have a higher bit error
+rate than the $R_3$ encoding, but we have a much \textit{larger} rate.
+
+So we can see that we're playing this tradeoff game between the \textit{rate} of an 
+encoding, and the \textit{bit error rate}. How good can we actually do on this?
+The answer to this is exaclty Shannon's Theorem.
+
+\subsubsection{Shannon's Theorem, informally}
+
+Shannons Theorem states that there is \textit{always} an encoding with
+a \textit{non-zero} rate which achieves 0 bit-error rate. The rate of this
+\textit{optimal} encoding is called the capacity $C$.
+
+For example, Shannons theorem states that the capacity of a Binary Symmetric
+Channel with flip probability $f$ is
+\begin{frml}
+	C_{BSC(f)} &= 1 - H_2(f) \\
+	H_2(f) &= f \log \frac{1}{f} + (1 - f)\log \frac{1}{1-f}
+\end{frml}
+
+This is rather remarkable. Recall that our $R_3$ encoding told us that, with
+$f=0.1,$ in order
+to get a bit-error rate of $10^{-15}$ for our disk drives, we actually needed
+a total of $61$ disk drives. However, shannons theorem tells us that there is
+an encoding for which \textit{we only need $2$ disk drives!}
